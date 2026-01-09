@@ -38,9 +38,9 @@ graph LR
 
 ### 1. Design: Difference-in-Differences (DiD)
 Instead of comparing raw crime rates, we compare the **change in crime** ($\Delta Y = Y_{2019} - Y_{2015}$) between treated and control cities.
-$$
-ATT = (\Delta Y_{Treated} - \Delta Y_{Control})
-$$
+```math
+ATT = \Delta Y_{\text{Treated}} - \Delta Y_{\text{Control}}
+```
 This removes biases from cities that naturally have high baseline crime rates.
 
 ### 2. Assumptions & Limitations
