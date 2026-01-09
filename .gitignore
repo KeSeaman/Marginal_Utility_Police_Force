@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# Data
+data/raw/
+data/processed/
+*.xls
+*.xlsx
+*.csv
+!data/raw/.gitkeep
+
+# Outputs (Keep the final report, but maybe ignore logs)
+outputs/*.log
+
+# Rust
+target/
