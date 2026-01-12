@@ -428,7 +428,3 @@ python src/main.py
 5. US Census American Community Survey: [https://www.census.gov/programs-surveys/acs](https://www.census.gov/programs-surveys/acs)
 
 ---
-
-*Document generated: 2026-01-11*  
-*Project: The Marginal Utility of Police Force*  
-*Author: Causal Analytics Pipeline*
