@@ -189,13 +189,41 @@ def load_raw_data():
              
         return fbi[['city', 'state', 'year', 'violent_crime_rate', 'property_crime_rate']]
 
-    fbi_2019 = load_fbi_year("data/raw/FBI_CIUS_2019_Table8.xls", 2019)
-    if not os.path.exists("data/raw/FBI_CIUS_2019_Table8.xls"):
-         fbi_2019 = load_fbi_year("data/raw/FBI_CIUS_Table8.xls", 2019)
-         
-    fbi_2015 = load_fbi_year("data/raw/FBI_CIUS_2015_Table8.xls", 2015)
+    # Load FBI data for all available years (2011-2019) for event-study analysis
+    fbi_years = [2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019]
+    fbi_list = []
     
-    fbi = pd.concat([fbi_2019, fbi_2015])
+    # Different file naming patterns to try for each year
+    def get_fbi_paths(year):
+        return [
+            f"data/raw/FBI_CIUS_{year}_Table8.xls",
+            f"data/raw/FBI_CIUS_Table8_{year}.xls",
+            f"data/raw/Table_8_Offenses_Known_to_Law_Enforcement_by_State_by_City_{year}.xls",
+            f"data/raw/table_8_offenses_known_to_law_enforcement_by_state_by_city_{year}.xls",
+            f"data/raw/table-8-{year}.xls",
+            f"data/raw/Table-8-{year}.xls",
+        ]
+    
+    for year in fbi_years:
+        fbi_year = pd.DataFrame()
+        
+        for path in get_fbi_paths(year):
+            if os.path.exists(path):
+                fbi_year = load_fbi_year(path, year)
+                if not fbi_year.empty:
+                    break
+        
+        if not fbi_year.empty:
+            fbi_list.append(fbi_year)
+            print(f"  Loaded {len(fbi_year)} cities for {year}", file=sys.stderr)
+        else:
+            print(f"  No data found for {year}", file=sys.stderr)
+    
+    if fbi_list:
+        fbi = pd.concat(fbi_list, ignore_index=True)
+        print(f"Total FBI records: {len(fbi)} across {fbi['year'].nunique()} years", file=sys.stderr)
+    else:
+        fbi = pd.DataFrame(columns=['city', 'state', 'year', 'violent_crime_rate', 'property_crime_rate'])
 
     # 3. Load ACS
     acs_path = "data/raw/ACS_Demographics_2019.csv"

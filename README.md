@@ -19,7 +19,10 @@ Using a **Difference-in-Differences** design, we find that cities with high poli
 | Metric | Estimate | Significance | Interpretation |
 |---|---|---|---|
 | **DiD Estimator** | `+343.99` | `p < 0.10` | Causal effect on *change* in crime. |
-| **Trend Direction** | Positive | - | Spending correlated with worsening trends. |
+| **Event-Study (t+4)** | `-85.46` | `p < 0.05` | Dynamic effect in long-run (2019). |
+
+> **Crucial Nuance**: While the simple 2-period DiD shows a positive correlation, the **Event-Study Analysis** (controlling for yearly shocks) reveals a significant **reduction** in crime in the long run (2018-2019), but this is complicated by a pre-existing differential trend in 2014.
+
 
 ---
 
@@ -47,7 +50,9 @@ This removes biases from cities that naturally have high baseline crime rates.
 > [!IMPORTANT]
 > The validity of these results rests on the following key assumptions:
 
-1.  **Parallel Trends**: We assume that, in the absence of the treatment (high spending), the crime rates in the Treated and Control groups would have evolved in parallel. *Limitation: If high-spending cities were already on a sharper upward trajectory pre-2015, this estimator is biased.*
+1.  **Parallel Trends**: Validated using **Event-Study (Leads-and-Lags)**. 
+    - *Result*: Pre-trends are mostly parallel but show a significant deviation in $t-1$ (2014), suggesting potential anticipatory effects or unobserved shocks just before treatment.
+    - *Implication*: Causal claims should be interpreted with caution due to this pre-trend violation.
 2.  **No Anticipatory Effects**: We assume cities did not ramp up spending in 2019 in anticipation of a crime spike that had not yet occurred.
 3.  **SUTVA (No Spillovers)**: Policing in one city is assumed not to displace crime to a neighboring control city.
 4.  **Stable Composition**: We match based on 2019 characteristics, assuming the structural similarity holds back to 2015.
@@ -69,6 +74,8 @@ Verified, clean, and functional architecture.
 │   ├── models/
 │   │   ├── psm.py          # Logistics Regression for Propensity Scores
 │   │   └── matching.py     # Nearest Neighbor Matching Implementation
+│   ├── analysis/
+│   │   └── event_study.py  # Leads-and-Lags Regression & Pre-trends Test
 │   ├── main.py             # DiD Pipeline Orchestrator
 ├── data/raw/               # Input datasets (gitignored)
 ├── outputs/                # Final Reports (results.md)

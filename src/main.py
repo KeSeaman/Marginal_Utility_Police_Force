@@ -1,6 +1,6 @@
 import modin.pandas as pd
 import ray
-from src.data.preprocess import preprocess_pipeline
+from src.data.preprocess import preprocess_pipeline, prepare_event_study_panel
 from src.models.psm import estimate_propensity_score, trim_common_support
 from src.models.matching import CausalMatcher
 from src.analysis.sensitivity import calculate_rosenbaum_bounds, run_placebo_test
@@ -31,7 +31,7 @@ def main():
         print("|---|---|---|")
         print(f"| FiSC | Lincoln Inst. | {fisc.shape[0]} cities (Spending) |")
         print(f"| FiSC | Lincoln Inst. | {fisc.shape[0]} cities (Spending) |")
-        print(f"| FBI UCR | Table 8 | 2015 & 2019 (Crime Trends) |")
+        print(f"| FBI UCR | Table 8 | {cius['year'].nunique()} years (Crime Trends) |")
         print(f"| ACS | Census | {acs.shape[0]} locations (Demographics) |")
 
         # Preprocessing
@@ -123,6 +123,82 @@ def main():
              print("  > **[NOTE]** The result is robust to hidden bias of magnitude Gamma=1.5.")
         else:
              print("  > **[WARNING]** The result may be sensitive to hidden bias at Gamma=1.5.")
+        
+        # ============================================================
+        # Section 6: Event-Study Analysis (Pre-Trends Validation)
+        # ============================================================
+        print("\n## 6. Event-Study Analysis (Pre-Trends Validation)")
+        print("\n### Validating the Parallel Trends Assumption")
+        print("\nThe DiD design assumes that treated and control cities would have followed parallel crime trajectories in the absence of the treatment. We test this by examining pre-treatment (pre-2015) trends.")
+        
+        try:
+            from src.analysis.event_study import run_event_study, plot_event_study, format_event_study_table, summarize_pre_trends
+            
+            # Prepare full panel for event-study
+            panel = prepare_event_study_panel(fisc, cius, acs)
+            
+            # Save processed data
+            os.makedirs("data/processed", exist_ok=True)
+            panel.to_csv("data/processed/event_study_panel.csv", index=False)
+            print("Saved processed panel to data/processed/event_study_panel.csv")
+            
+            if not panel.empty and panel['year'].nunique() >= 2:
+                avail_years = sorted(panel['year'].unique())
+                print(f"\n**Panel Data**: {len(panel)} city-year observations")
+                print(f"**Years Available**: {avail_years}")
+                print(f"**Cities in Panel**: {panel['city'].nunique()}")
+                
+                # Check if we have pre-treatment periods
+                pre_2015 = [y for y in avail_years if y < 2015]
+                post_2015 = [y for y in avail_years if y > 2015]
+                
+                if len(pre_2015) >= 1:
+                    print(f"\n**Pre-Treatment Years**: {pre_2015} (for testing parallel trends)")
+                    print(f"**Post-Treatment Years**: {post_2015} (for dynamic effects)")
+                    
+                    # Run event-study regression
+                    results = run_event_study(
+                        panel, 
+                        outcome='violent_crime_rate', 
+                        treatment_year=2015, 
+                        covariates=covariates
+                    )
+                    
+                    if results['model'] is not None:
+                        print("\n### Event-Study Coefficients")
+                        print("\n*Coefficients show difference in violent crime rate between treated and control cities relative to the treatment year (2015). Pre-treatment coefficients should be ≈ 0 if parallel trends hold.*\n")
+                        print(format_event_study_table(results['coefficients']))
+                        
+                        print(f"\n**Observations**: {results['n_obs']}")
+                        print(f"**Cities**: {results['n_cities']}")
+                        
+                        print("\n### Pre-Trends Test")
+                        print(summarize_pre_trends(results['coefficients'], results['pre_trends_p_value']))
+                        
+                        # Generate and embed the plot
+                        plot_event_study(
+                            results['coefficients'], 
+                            output_path='outputs/event_study_plot.png',
+                            title='Event-Study: Police Spending and Violent Crime',
+                            treatment_year=2015
+                        )
+                        print("\n### Event-Study Coefficient Plot")
+                        print("\n![Event-Study Coefficients](event_study_plot.png)")
+                        print("\n*Figure shows treatment effect coefficients by event time. Pre-2015 coefficients test the parallel trends assumption. Confidence intervals crossing zero indicate no significant differential trend.*")
+                    else:
+                        print("\n> **Note**: Event-study model could not be estimated. Check data requirements.")
+                else:
+                    print("\n> **Note**: No pre-treatment years (before 2015) available in the data.")
+                    print("> To run the pre-trends test, download FBI UCR Table 8 data for 2011-2014 and place in `data/raw/`.")
+                    print("\n**Available years**: " + ", ".join(map(str, avail_years)))
+            else:
+                print("\n> **Note**: Insufficient panel data for event-study analysis.")
+                print("> Ensure FBI crime data for multiple years is available in `data/raw/`.")
+                
+        except Exception as e:
+            import traceback
+            print(f"\n> **Error in event-study analysis**: {str(e)}")
+            print(f"> Traceback: {traceback.format_exc()}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()

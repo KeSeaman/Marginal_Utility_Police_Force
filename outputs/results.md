@@ -1,61 +1,64 @@
-# The Marginal Utility of Force: Analysis Report
-## Executive Summary
-This report investigates the causal impact of police spending on violent crime rates using Propensity Score Matching (PSM). comparing High Investment (Top Quartile) vs Low Investment (Bottom Quartile) cities in 2019.
+# Analysis Results: Marginal Utility of Police Force
 
-## 1. Data Overview
-| Dataset | Source | Description |
-|---|---|---|
-| FiSC | Lincoln Inst. | 218 cities (Spending) |
-| FiSC | Lincoln Inst. | 218 cities (Spending) |
-| FBI UCR | Table 8 | 2015 & 2019 (Crime Trends) |
-| ACS | Census | 29318 locations (Demographics) |
+## 1. Main DiD Analysis (2015 vs 2019)
 
-**Total Analyzed Sample**: 148 cities (after merging and filtering).
+### 1.1 Estimator: Doubly Robust (PSM + Regression)
+**Specification**: ΔCrime ~ Treatment + Density + Income + Poverty + Youth (+ PSM weights)
 
-## 2. Methodology
-- **Design**: Difference-in-Differences (DiD) with Propensity Score Matching.
-- **Treatment**: Top Quartile Police Spending per Capita (2019).
-- **Control**: Bottom Quartile Police Spending per Capita (2019).
-- **Outcome**: Change in Violent Crime Rate (2019 - 2015).
-- **Covariates**: population_density, median_income, poverty_rate, male_15_24
+| Variable | Coefficient | Std. Error | p-value | 95% CI |
+|----------|-------------|------------|---------|--------|
+| **Treatment** | **+343.99** | 185.26 | **0.067** | [-25.2, 713.2] |
+| Intercept | +183.36 | 451.41 | 0.406 | [-716.3, 1083.0] |
 
-## 3. Matching Statistics
-- **Treated Units**: 72
-- **Control Units**: 72
-- **Matched Pairs**: 58
+**Interpretation**:
+- **Positive Coefficient**: High spending cities saw *more* crime growth than low spending cities (+344 per 100k).
+- **Significance**: Marginally significant (p < 0.10).
+- **Conclusion**: No evidence of deterrent effect in this window. Likely reverse causality.
 
-## 4. Causal Estimates
-### Average Treatment Effect on the Treated (ATT)
-**Estimate**: `262.1900`
-Interpretation: High police spending is associated with this *change* in violent crime rate (2015-2019) relative to low-spending cities. A negative value would indicate a deterrent effect.
+### 1.2 Sensitivity Analysis
 
-### Bias-Adjusted Regression (Doubly Robust)
-```
-======================================================================================
-                         coef    std err          t      P>|t|      [0.025      0.975]
---------------------------------------------------------------------------------------
-Intercept            183.3550    451.411      0.406      0.686    -716.305    1083.015
-treatment            343.9988    185.264      1.857      0.067     -25.231     713.229
-population_density     0.0002      0.001      0.120      0.905      -0.003       0.003
-median_income         -0.0063      0.005     -1.172      0.245      -0.017       0.004
-poverty_rate         769.9788   1762.672      0.437      0.664   -2743.021    4282.979
-male_15_24         -2781.8783   2025.243     -1.374      0.174   -6818.182    1254.425
-======================================================================================
-```
+| Check | Result | Interpretation |
+|-------|--------|----------------|
+| **Placebo (Property Crime)** | **+1181.84** | Strong positive effect suggests broad confounding (omitted variable causing all crime to rise). |
+| **Rosenbaum Bounds** | **Γ = 1.5 (p=0.436)** | Results are sensitive to moderate hidden bias. A confounder increasing treatment odds by 50% could explain the result. |
 
-#### Analysis of Regression Results (Doubly Robust)
-This table presents the causal analysis of the *change* in violent crime (2015-2019).
-- **Intercept**: Represents the baseline trend for the reference group (Control) when all other covariates are zero (theoretical baseline).
-- **treatment**: The main causal estimator (DiD). A coefficient of 344.00 means high-spending cities saw this much more (or less) crime growth than low-spending cities.
-- **population_density**: Controls for whether denser cities had different crime trends than sparse ones.
-- **median_income**: Controls for whether wealthier cities were on a different crime trajectory.
-- **poverty_rate**: Adjusts for the trend differential in high-poverty areas.
-- **male_15_24**: Adjusts for trends driven by demographic shifts (young male population share).
+---
 
-> **Result**: The coefficient remains positive, suggesting no deterrent effect (or persistent reverse causality).
+## 2. Event-Study Analysis (2011 - 2019)
 
-## 5. Sensitivity Analysis
-- **Placebo Test (Change in Property Crime)**: `1181.8379`
-  > **Interpretation**: Tests if the treatment also affects property crime trends. A significant effect here might suggest broad unobserved confounding (e.g., gentrification) rather than specific policing effects on violence.
-- **Rosenbaum Bounds (Gamma=1.5)**: p-value < `0.4359`
-  > **[WARNING]** The result may be sensitive to hidden bias at Gamma=1.5.
+### 2.1 Specification
+**Model**: Panel Fixed Effects (City + Year) with Leads and Lags.
+**Reference Year**: 2015 (t=0)
+
+### 2.2 Raw Coefficients
+
+| Period | Year | Beta | Std.Err | P-value | Sig |
+|--------|------|------|---------|---------|-----|
+| t-4 | 2011 | -33.80 | 42.87 | 0.431 | |
+| t-3 | 2012 | 9.07 | 44.67 | 0.839 | |
+| t-2 | 2013 | -31.29 | 38.36 | 0.415 | |
+| t-1 | 2014 | **-47.16** | 22.44 | **0.036** | * |
+| t+0 | 2015 | REF | — | — | |
+| t+1 | 2016 | -19.21 | 19.03 | 0.313 | |
+| t+2 | 2017 | -25.57 | 31.21 | 0.413 | |
+| t+3 | 2018 | **-89.31** | 34.46 | **0.010** | ** |
+| t+4 | 2019 | **-85.46** | 33.12 | **0.010** | ** |
+
+### 2.3 Interpretations
+
+**Pre-Trends (Validity Check)**:
+- **Violation in 2014**: The significant coefficient at t-1 (-47.16) indicates that high-spending cities were *already* deviating from the trend before 2015.
+- **Implication**: The parallel trends assumption is marginally violated (F-test p=0.049). Causal claims should be cautious.
+
+**Dynamic Effects (Post-Treatment)**:
+- **Delayed Reduction**: In 2018 and 2019, coefficients turn significantly negative (~ -85 to -89).
+- **Contrast**: This contradicts the simple 2015-2019 DiD (which found a positive effect). The Event Study controls for year-specific shocks better.
+- **Conclusion**: There might be a long-run deterrent effect, but the pre-trend violation makes strict causal attribution difficult.
+
+---
+
+## 3. Summary Verdict
+
+1. **Short Term (DiD)**: High spending correlates with *rising* crime (Reverse Causality likely).
+2. **Robustness**: Results are fragile (fail Rosenbaum & Placebo tests).
+3. **Long Term (Event Study)**: Potential reduction in later years, but validity is threatened by pre-treatment differences.
