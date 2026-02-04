@@ -132,7 +132,7 @@ This estimator is consistent if *either* the propensity score model *or* the out
 
 | Test | Result | Interpretation |
 |------|--------|----------------|
-| **Placebo (ΔProperty Crime)** | +1181.84 | Large positive effect suggests confounding |
+| **Placebo (ΔProperty Crime)** | +1181.84 | Large positive effect suggests confounding likely driven by economic booms (gentrification). |
 | **Rosenbaum Bounds (Γ=1.5)** | p = 0.436 | Result is sensitive to moderate hidden bias |
 
 ---
@@ -192,6 +192,7 @@ While the main DiD estimator (comparing 2019 vs 2015) suggested a positive coeff
 - **Sample Size**: 58 matched pairs limits statistical power.
 - **Parallel Trends**: Pre-trend analysis suggests violations in 2014.
 - **SUTVA**: Possible displacement effects not modeled.
+- **Confounding (Gentrification)**: The large positive effect on property crime (+1181) in the placebo test suggests that "High Spending" cities may be undergoing economic booms. Rising property values increase tax revenue (funding police) while simultaneously increasing the value of assets to steal, generating a spurious positive correlation. Future work should control for property values or business permits.
 
 ---
 
